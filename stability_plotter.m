@@ -1,7 +1,7 @@
 % Index for which data set to load, values are 0-2
-index = 3;
+index = -1;
 % Whether to load hardware or simulation data
-hardware = true;
+hardware = false;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  HARDWARE DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -38,7 +38,6 @@ if hardware
         % Grab bag, no yaw hip height
         noOpt = 'C:\Users\smccrory\Documents\Support Region Optimization\1105 Hardware Testing\20241105_1335_BagGrab0_NoOpt\data.scs2.mat';
         opt = 'C:\Users\smccrory\Documents\Support Region Optimization\1105 Hardware Testing\20241105_1335_BagGrab0_NoOpt\data.scs2.mat';
-
     end
 
     load(noOpt);
@@ -55,9 +54,12 @@ if hardware
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 else
+    if index == -1
+        noOpt = 'C:\Users\smccrory\Documents\Simulation Data\250211_wall0_noOpt\data.scs2.mat';
+        opt = 'C:\Users\smccrory\Documents\Simulation Data\250211_wall0_opt\data.scs2.mat';
 
     % 0 pitch
-    if index == 0
+    elseif index == 0
         noOpt = 'C:\Users\smccrory\.ihmc\logs\multi-contact\wall0_noOpt\simData\data.scs2.mat';
         opt = 'C:\Users\smccrory\.ihmc\logs\multi-contact\wall0_opt\simData\data.scs2.mat';
 
@@ -105,8 +107,6 @@ else
     load(opt);
     m1 = root.nadia.DRCSimulation.DRCControllerThread.DRCMomentumBasedController.HumanoidHighLevelControllerManager.HighLevelHumanoidControllerToolbox.cop_StabilityMarginRegionCalculator.cop_StabilityMargin;
     t1 = root.('time[sec]');
-    stability = root.stabilityState;
-    alpha = root.activationAlpha;
 
 end
 
@@ -119,8 +119,8 @@ if hardware
     maxIndex1 = getMaxIndex(m1, 0.0);
 else
     % Crop based on activation
-    minIndex1 = getMinIndex(alpha, 0.1);
-    maxIndex1 = getMaxIndex(alpha, 0.1);
+    minIndex1 = getMinIndex(m1, 0.0);
+    maxIndex1 = getMaxIndex(m1, 0.0);
 
     minIndex0 = minIndex1;
     maxIndex0 = maxIndex1;
@@ -136,9 +136,9 @@ m1 = m1(minIndex1:maxIndex1);
 t1 = t1(minIndex1:maxIndex1);
 % stability = stability(minIndex1:maxIndex1);
 
-if ~hardware
-    alpha = alpha(minIndex1:maxIndex1);
-end
+%if ~hardware
+%    alpha = alpha(minIndex1:maxIndex1);
+%end
 
 % tmin = min(t0(1), t1(1));
 % t0 = t0 - tmin;
