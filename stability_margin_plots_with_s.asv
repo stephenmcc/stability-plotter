@@ -1,0 +1,143 @@
+files = {};
+labels = {};
+
+plot_area = false;
+
+rootDirName = 'Z:\Nadia\StephenFolder\2503_SRO\';
+
+% dirName = '250327_1935_FirstRunAllReplay';
+% dirName = '250327_2054_AllReplay';
+dirName = '250327_2106_FinalRun';
+% dirName = '250328_0825_LowerGoodRun';
+
+% rootDirName = 'Z:\Nadia\StephenFolder\2505_SRO\';
+
+% dirName = '250506_WallBrace0';
+% dirName = '250506_WallBrace1';
+
+colors = {'black', 'red', 'yellow', 'green', 'blue', };
+styles = {'-', '-.', '--', ':', '-.', '-.'};
+
+fig = figure;
+lineWidth = 4.5;
+
+plots = [];
+
+% dirName = '250327_1935_FirstRunAllReplay';
+[m0, t0, a0, s0] = loadFile(strcat(rootDirName, dirName, '\baseline\data.scs2.mat'), false);
+p0 = plot(t0, m0, 'LineWidth', lineWidth, 'LineStyle', styles{1}, 'Color', colors{1});
+hold on
+
+[m1, t1, a1, s1] = loadFile(strcat(rootDirName, dirName, '\posture_contact\data.scs2.mat'), false);
+p1 = plot(t1, m1, 'LineWidth', lineWidth, 'LineStyle', styles{2}, 'Color', colors{2});
+
+% yyaxis right
+% blue = [0 0.4470 0.7410];
+% p2 = plot(t1, s1, 'LineWidth', 0.5*lineWidth, 'LineStyle', styles{1}, 'Color', blue);
+
+% clipM = min(length(m0), length(m1));
+% m0 = m0(1:clipM);
+% m1 = m1(1:clipM);
+% tClip = t1(1:clipM);
+% deltaM = m1 - m0;
+% deltaMPercentage = deltaM ./ m0;
+% disp(max(deltaM))
+% disp(max(deltaMPercentage))
+% plot(t0, m0);
+% plot(t, m1);
+
+tSample = 0:0.05:22;
+
+m0Sample = interp1(t0,m0,tSample);
+plot(tSample, m0Sample);
+
+m1Sample = interp1(t1,m1,tSample);
+plot(tSample, m1Sample);
+
+deltaM = m1Sample - m0Sample;
+deltaMPercentage = deltaM ./ m0;
+
+
+hold off
+
+ax = gca;
+ax.TickLabelInterpreter = 'latex';
+ax.FontSize = 20;
+% ax.YAxis(2).Color = [0 0 0];
+
+grid minor
+
+xlim([6 21])
+title('CoM Stability Margin - Hardware', 'Interpreter', 'latex')
+xlabel('Time [s]', 'Interpreter', 'latex')
+
+yyaxis left
+ylabel('CoM Stability Margin [m]', 'Interpreter', 'latex')
+ylim([0 0.2])
+
+% yyaxis right
+% ylabel('Posture Sensitivity ($s_q$)', 'Interpreter', 'latex')
+% ylim([-0.001 0.16])
+% xlim([6 21])
+
+plts = fig.Children.Children;
+
+labels = {};
+labels{1} = 'Margin Without Retargeting';
+labels{2} = 'Margin With Retargeting';
+labels{3} = 'Posture Sensitivity';
+
+% lgd = legend([p0 p1 p2], labels, 'Interpreter', 'latex', 'FontSize', 16);
+lgd = legend([p0 p1], labels, 'Interpreter', 'latex', 'FontSize', 16);
+lgd.Location = 'southwest';
+
+
+function index = getMinIndex(m, minVal, maxVal)
+for i = 1:length(m)
+    if ~isinf(m(i)) && m(i) > minVal && m(i) < maxVal
+        index = i;
+        return;
+    end
+end
+end
+
+function index = getMaxIndex(m, minVal, maxVal)
+for i = length(m):-1:1
+    if ~isinf(m(i)) && m(i) > minVal && m(i) < maxVal
+        index = i;
+        return;
+    end
+end
+end
+
+function [m, t, a, s] = loadFile(file, loadSensitivity)
+
+load(file);
+
+m  = root.main.DRCControllerThread.DRCMomentumBasedController.HumanoidHighLevelControllerManager.HighLevelHumanoidControllerToolbox.cop_StabilityMarginRegionCalculator.cop_StabilityMargin;
+t = root.LogDataReader.robotTime;
+a = root.main.DRCControllerThread.DRCMomentumBasedController.HumanoidHighLevelControllerManager.HighLevelHumanoidControllerToolbox.cop_StabilityMarginRegionCalculator.stabilityArea;  
+
+minIndex = getMinIndex(m, 0.0, Inf);    
+maxIndex = getMaxIndex(m, 0.0, Inf);
+
+m = m(minIndex:maxIndex);
+t = t(minIndex:maxIndex);
+a = a(minIndex:maxIndex);
+t = t - t(1);
+
+minIndexAdditional = getMinIndex(t, 6.0, Inf);
+maxIndexAdditional = getMaxIndex(t, 0.0, 22.0);
+
+m = m(minIndexAdditional:maxIndexAdditional);
+t = t(minIndexAdditional:maxIndexAdditional);
+a = a(minIndexAdditional:maxIndexAdditional);
+
+if loadSensitivity
+    s = root.main.IKStreamingRTThread.KinematicsStreamingToolboxController.HumanoidKinematicsToolboxController.StabilityBasedKinematicRetargetingCalculator.SensitivityBasedStabilityGradientCalculator.postureSensitivity;        
+    s = s((minIndex + minIndexAdditional - 1):(minIndex + maxIndexAdditional - 1));    
+else
+    s = [];
+end
+
+end

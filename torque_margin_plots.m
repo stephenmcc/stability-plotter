@@ -1,150 +1,72 @@
 files = {};
-labels = {};
-
 rootDirName = 'Z:\Nadia\StephenFolder\2503_SRO\';
 
-dirName = '250327_1935_FirstRunAllReplay';
-% dirName = '250327_2054_AllReplay';
-% dirName = '250327_2106_FinalRun';
+ dirName = '250327_1935_FirstRunAllReplay';
+%dirName = '250327_2054_AllReplay';
+%dirName = '250327_2106_FinalRun';
 % dirName = '250328_0825_LowerGoodRun';
 
 files{length(files) + 1} = strcat(rootDirName, dirName, '\baseline\data.scs2.mat');
-% labels{length(labels) + 1} = 'Baseline';
-labels{length(labels) + 1} = 'Optimizer Disabled';
-
 files{length(files) + 1} = strcat(rootDirName, dirName, '\posture_contact\data.scs2.mat');
-labels{length(labels) + 1} = 'Optimizer Enabled';
-% labels{length(labels) + 1} = 'Posture + Contact';
 
 colors = {'black', 'red', 'yellow', 'green', 'blue', };
-styles = {'-', '--', '--', ':', '-.', '-.'};
+styles = {'--', '--', ':', '-.', '-'};
 
 clf
 
-t = tiledlayout(2,2, "TileSpacing","tight");
-nexttile
+fig = figure;
+lineWidth = 3.0;
 
 hold on
 grid minor
-plotTorqueMargin(files, 1, colors, styles, 'Shoulder Pitch')
+
+[margin_avg_1, max_t] = plotTorqueMargin(files, 1, colors, styles, 'Shoulder Pitch');
+[margin_avg_2, max_t] = plotTorqueMargin(files, 2, colors, styles, 'Shoulder Roll');
+[margin_avg_3, max_t] = plotTorqueMargin(files, 3, colors, styles, 'Shoulder Yaw');
+[margin_avg_4, max_t] = plotTorqueMargin(files, 4, colors, styles, 'Elbow Pitch');
+
+margin_avg = (margin_avg_1 + margin_avg_2 + margin_avg_3 + margin_avg_4) / 4.0;
+line([0.0 max_t], [margin_avg margin_avg], 'LineWidth', lineWidth, 'LineStyle', styles{5}, 'Color', [0 0 0]);
+disp(margin_avg);
+
+legend({"Shoulder Pitch", "Shoulder Roll", "Shoulder Yaw", "Elbow Pitch", "Average"}, 'Location', 'northwest', 'Orientation', 'vertical', 'Interpreter', 'latex', 'FontSize', 10)
 
 ax = gca;
 ax.TickLabelInterpreter = 'latex';
 ax.FontSize = 12;
 
-nexttile
-
-hold on
-grid minor
-
-plotTorqueMargin(files, 2, colors, styles, 'Shoulder Roll')
-nexttile
-
-hold on
-grid minor
-
-plotTorqueMargin(files, 3, colors, styles, 'Shoulder Yaw')
-ylim([-0.15, 1.0])
-
-nexttile
-
-hold on
-grid minor
-
-plotTorqueMargin(files, 4, colors, styles, 'Elbow Pitch')
-
-% fig = figure;
-% lineWidth = 3.0;
-% 
-% colors = {'black', 'red', 'yellow', 'green', 'blue', };
-% styles = {'-', '-.', '--', ':', '-.', '-.'};
-% plots = [];
-% 
-% shoulder_y_margins = [];
-% shoulder_x_margins = [];
-% shoulder_z_margins = [];
-% elbow_y_margins = [];
-% 
-% t = tiledlayout(2,1, "TileSpacing","tight");
-% nexttile
-% 
-% hold on
-% grid minor
-% 
-% p1 = plot(t, shoulder_y_margins(1), 'LineWidth', lineWidth, 'LineStyle', styles{i}, 'Color', colors{1});
-% p2 = plot(t, shoulder_y_margins(2), 'LineWidth', lineWidth, 'LineStyle', styles{i}, 'Color', colors{2});
-% 
-% xlim([6,21])
-% ylim([-0.2 1.2])
-% 
-% ax = gca;
-% ax.TickLabelInterpreter = 'latex';
-% ax.FontSize = 20;
-% 
-% title('Shoulder Y Torque Margin', 'Interpreter', 'latex')
-% 
-% xlabel('Time [s]', 'Interpreter', 'latex')
-% ylabel('Torque Margin Percentage', 'Interpreter', 'latex')
-% 
-% 
-% nexttile
-% 
-% hold on
-% grid minor
-% 
-% p1 = plot(t, shoulder_x_margins(1), 'LineWidth', lineWidth, 'LineStyle', styles{i}, 'Color', colors{1});
-% p2 = plot(t, shoulder_x_margins(2), 'LineWidth', lineWidth, 'LineStyle', styles{i}, 'Color', colors{2});
-% 
-% xlim([6,21])
-% ylim([-0.2 1.2])
-% 
-% ax = gca;
-% ax.TickLabelInterpreter = 'latex';
-% ax.FontSize = 20;
-% 
-% title('Shoulder Y Torque Margin', 'Interpreter', 'latex')
-% 
-% xlabel('Time [s]', 'Interpreter', 'latex')
-% ylabel('Torque Margin Percentage', 'Interpreter', 'latex')
-
-function plotTorqueMargin(files, jointIndex, colors, styles, jointName)
+function [margin_avg, max_t] = plotTorqueMargin(files, jointIndex, colors, styles, jointName)
 
 lineWidth = 3.0;
 
 [torque_margin, t] = loadFile(1, files, jointIndex);
-plot(t, torque_margin, 'LineWidth', lineWidth, 'LineStyle', styles{1}, 'Color', colors{1});
-m = mean(torque_margin);
-m_vector = m * ones(size(t));
-p = plot(t, m_vector, 'LineWidth', lineWidth * 0.3, 'LineStyle', styles{1}, 'Color', colors{1});
+[torque_margin_rt, t_rt] = loadFile(2, files, jointIndex);
 
-[torque_margin, t] = loadFile(2, files, jointIndex);
-plot(t, torque_margin, 'LineWidth', lineWidth, 'LineStyle', styles{2}, 'Color', colors{2});
-m = mean(torque_margin);
-m_vector = m * ones(size(t));
-p = plot(t, m_vector, 'LineWidth', lineWidth * 0.3, 'LineStyle', styles{2}, 'Color', colors{2});
+min_size = min(size(t), size(t_rt));
+torque_margin = torque_margin(1:min_size);
+t = t(1:min_size);
+torque_margin_rt = torque_margin_rt(1:min_size);
+t_rt = t_rt(1:min_size);
 
-legend({"Without Retargeting", "Without Retargeting (avg)", "With Retargeting", "With Retargeting (avg)"}, 'Location', 'southwest', 'Orientation', 'vertical', 'Interpreter', 'latex', 'FontSize', 10)
+max_t_element = t(size(t));
+max_t = max_t_element(1);
 
-if jointIndex == 1
-    xlbl = xlabel('Time [s]', 'Interpreter', 'latex', 'Position', [20.0 0.175 -1]);
-elseif jointIndex == 2
-    xlbl = xlabel('Time [s]', 'Interpreter', 'latex', 'Position', [20.0 0.175 -1]);    
-elseif jointIndex == 3
-    xlbl = xlabel('Time [s]', 'Interpreter', 'latex', 'Position', [20.0 0.04 -1]);
-else
-    xlbl = xlabel('Time [s]', 'Interpreter', 'latex', 'Position', [20.0 0.175 -1]);
-end
+torque_margin_delta = torque_margin_rt - torque_margin;
 
-title(strcat(jointName,' Torque Margin Percentage'), 'Interpreter', 'latex')
+plot(t, torque_margin_delta, 'LineWidth', lineWidth, 'LineStyle', styles{jointIndex}); %, 'Color', colors{jointIndex});
+
+margin_avg = mean(torque_margin_delta);
 
 xlim([6,21])
-ylim([0.0 1.0])
+ylim([-0.3 1.0])
+
+title('Actuation Margin Comparison', 'Interpreter', 'latex')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('Torque Margin $\%$ Variation ($\Delta m_{\tau}$)', 'Interpreter', 'latex')
 
 ax = gca;
 ax.TickLabelInterpreter = 'latex';
 ax.FontSize = 12;
-
-% disp(ax.Units);
 
 end
 
@@ -154,11 +76,18 @@ function [torque_margin, t] = loadFile(fileIndex, files, jointIndex)
 
     m = root.main.DRCControllerThread.DRCMomentumBasedController.HumanoidHighLevelControllerManager.HighLevelHumanoidControllerToolbox.cop_StabilityMarginRegionCalculator.cop_StabilityMargin;
     t = root.LogDataReader.robotTime;
-    minIndex = getMinIndex(m, 0.0);
-    maxIndex = getMaxIndex(m, 0.0);
+
+    minIndex = getMinIndex(m, 0.0, Inf);    
+    maxIndex = getMaxIndex(m, 0.0, Inf);
 
     t = t(minIndex:maxIndex);
     t = t - t(1);
+
+    minIndexAdditional = getMinIndex(t, 6.0, Inf);
+    maxIndexAdditional = getMaxIndex(t, 0.0, 25.0);
+    
+    m = m(minIndexAdditional:maxIndexAdditional);
+    t = t(minIndexAdditional:maxIndexAdditional);
 
     tau_max_SHOULDER_Y = 41.50;
     tau_max_SHOULDER_X = 41.50;
@@ -175,21 +104,21 @@ function [torque_margin, t] = loadFile(fileIndex, files, jointIndex)
         torque_margin = (abs(tau_max_ELBOW_Y)    - abs(root.main.DRCEstimatorThread.NadiaSensorReader.SensorProcessing.raw_tau_RIGHT_ELBOW_Y))    / abs(tau_max_ELBOW_Y);
     end
 
-    torque_margin = torque_margin(minIndex:maxIndex);
+    torque_margin = torque_margin((minIndex + minIndexAdditional - 1):(minIndex + maxIndexAdditional - 1));    
 end
 
-function index = getMinIndex(m, minVal)
+function index = getMinIndex(m, minVal, maxVal)
 for i = 1:length(m)
-    if ~isinf(m(i)) && m(i) > minVal
+    if ~isinf(m(i)) && m(i) > minVal && m(i) < maxVal
         index = i;
         return;
     end
 end
 end
 
-function index = getMaxIndex(m, minVal)
+function index = getMaxIndex(m, minVal, maxVal)
 for i = length(m):-1:1
-    if ~isinf(m(i)) && m(i) > minVal
+    if ~isinf(m(i)) && m(i) > minVal && m(i) < maxVal
         index = i;
         return;
     end
